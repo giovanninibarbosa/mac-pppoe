@@ -15,7 +15,7 @@
 int pppoeInterfaceNum=0;
 static char* xstrdup(const char* s)
 {
-	int len = strlen(s) +1;
+	size_t len = strlen(s) +1;
 	char* ret = malloc(sizeof(char) * len);
 	if (ret) memcpy(ret, s, len);
 	return ret;
@@ -114,8 +114,8 @@ static int pppConnect(SCNetworkConnectionRef connection, DialParas* data) {
     err = 0;
 	if (connection == NULL) err = EINVAL;
 	if (err == 0) {
-		CFStringRef keys[3] = { NULL, NULL, NULL };
-		CFStringRef vals[3] = { NULL, NULL, NULL };
+		CFTypeRef keys[3] = { NULL, NULL, NULL };
+		CFTypeRef vals[3] = { NULL, NULL, NULL };
 		CFIndex numkeys = 0;
 		keys[numkeys] = kSCPropNetPPPAuthName;
 		vals[numkeys++] = CFStringCreateWithCString(NULL, data->uName, kCFStringEncodingUTF8);

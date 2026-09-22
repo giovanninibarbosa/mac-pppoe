@@ -87,7 +87,8 @@ static pppoeGUI* sharedSingleton = nil;
     if (!font) font = [NSFont systemFontOfSize:0.0];  // Default font
     html = [NSString stringWithFormat:@"<span style=\"font-family:'%@'; font-size:%dpx;\">%@</span>", [font fontName], (int)[font pointSize], html];
     NSData *data = [html dataUsingEncoding:NSUTF8StringEncoding];
-    NSAttributedString* string = [[NSAttributedString alloc] initWithHTML:data options:nil documentAttributes:nil];
+    NSDictionary *docAttributes = nil;
+    NSAttributedString* string = [[NSAttributedString alloc] initWithHTML:data options:@{} documentAttributes:&docAttributes];
     return string;
 }
 
@@ -112,7 +113,7 @@ static pppoeGUI* sharedSingleton = nil;
                 NSMutableDictionary *all = [[NSMutableDictionary alloc] init];
                 for (NSString *str in results) {
                     NSArray *keyAndValue = [str componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"="]];
-                    int len = [keyAndValue count];
+                    int len = (int)[keyAndValue count];
                     if (len<2) {
                         [all setObject:@"" forKey:keyAndValue[0]];
                     } else {
@@ -202,9 +203,9 @@ static pppoeGUI* sharedSingleton = nil;
 	if (str != nil) [sNameTF setStringValue:str];
 	str = [defaults stringForKey:@"password"];
 	if (str != nil) [pwdTF setStringValue:str];
-	[acCheckBox setIntValue:[defaults integerForKey:@"autoConnect"]];
-    [eRadioButton setIntValue:[defaults integerForKey:@"ethernetType"]];
-    [aRadioButton setIntValue:[defaults integerForKey:@"airportType"]];
+	[acCheckBox setIntValue:(int)[defaults integerForKey:@"autoConnect"]];
+    [eRadioButton setIntValue:(int)[defaults integerForKey:@"ethernetType"]];
+    [aRadioButton setIntValue:(int)[defaults integerForKey:@"airportType"]];
 }
 
 - (void) settingSave {
