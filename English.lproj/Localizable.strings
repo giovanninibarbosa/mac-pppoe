@@ -1,4 +1,7 @@
 /* No comment provided by engineer. */
+"PPPoE" = "PPPoE";
+
+/* No comment provided by engineer. */
 "cancel" = "cancel";
 
 /* No comment provided by engineer. */
@@ -35,3 +38,33 @@
 "ppp service not available" = "ppp service not available";
 
 "updateLabel" = "A new version find.";
+
+/* No comment provided by engineer. */
+"User Name" = "User Name";
+
+/* No comment provided by engineer. */
+"Password" = "Password";
+
+/* No comment provided by engineer. */
+"Service Name" = "Service Name";
+
+/* No comment provided by engineer. */
+"Ethernet" = "Ethernet";
+
+/* No comment provided by engineer. */
+"AirPort" = "AirPort";
+
+/* No comment provided by engineer. */
+"Auto connect" = "Auto connect";
+
+/* No comment provided by engineer. */
+"Quit" = "Quit";
+
+/* No comment provided by engineer. */
+"Help" = "Help";
+
+/* No comment provided by engineer. */
+"PPPoE Client Help" = "PPPoE Client Help";
+
+/* No comment provided by engineer. */
+"Quit %@" = "Quit %@";

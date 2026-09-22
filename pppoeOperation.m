@@ -9,12 +9,13 @@
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #import "pppoeOperation.h"
 int pppoeInterfaceNum=0;
 static char* xstrdup(const char* s)
 {
-	int len = strlen(s) +1;
+	size_t len = strlen(s) +1;
 	char* ret = malloc(sizeof(char) * len);
 	if (ret) memcpy(ret, s, len);
 	return ret;
@@ -113,8 +114,8 @@ static int pppConnect(SCNetworkConnectionRef connection, DialParas* data) {
     err = 0;
 	if (connection == NULL) err = EINVAL;
 	if (err == 0) {
-		CFStringRef keys[3] = { NULL, NULL, NULL };
-		CFStringRef vals[3] = { NULL, NULL, NULL };
+		CFTypeRef keys[3] = { NULL, NULL, NULL };
+		CFTypeRef vals[3] = { NULL, NULL, NULL };
 		CFIndex numkeys = 0;
 		keys[numkeys] = kSCPropNetPPPAuthName;
 		vals[numkeys++] = CFStringCreateWithCString(NULL, data->uName, kCFStringEncodingUTF8);
@@ -330,29 +331,18 @@ static int pppDisconnect(SCNetworkConnectionRef connection) {
 	
 	if (!data->uName) return nil;
 	if (!data->pwd) return nil;
-	//if (!data->sName) return nil;
 	dialData.uName = xstrdup(data->uName);
 	dialData.pwd = xstrdup(data->pwd);
-	dialData.sName = xstrdup(data->sName);
+	dialData.sName = data->sName ? xstrdup(data->sName) : NULL;
     dialData.connectType = data->connectType;
 	dialData.cmd = data->cmd;
 	return self;
 }
 
 - (void)dealloc {
-	if (dialData.uName) {
-		free(dialData.uName);
-		dialData.uName = nil;
-	}
-	if (dialData.pwd) {
-		free(dialData.pwd);
-		dialData.pwd = nil;
-	}
-	if (dialData.sName) {
-		free(dialData.sName);
-		dialData.sName = nil;
-	}
-	[super dealloc];
+	free(dialData.uName);
+	free(dialData.pwd);
+	free(dialData.sName);
 }
 
 - (void)setPPPStatus:(PPPStatus)status {
@@ -470,7 +460,7 @@ static int pppDisconnect(SCNetworkConnectionRef connection) {
             if (dialData.connectType==0) {
                 serviceName=CFSTR("AirPort PPPoE");
             }
-            if (strlen(dialData.sName)>0) {
+            if (dialData.sName && strlen(dialData.sName)>0) {
                 serviceName=CFStringCreateWithCString(NULL, dialData.sName, kCFStringEncodingUTF8);
             }
 			SCNetworkServiceSetName(service, serviceName);

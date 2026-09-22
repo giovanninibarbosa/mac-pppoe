@@ -7,8 +7,15 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import "pppoeGUI.h"
 
-int main(int argc, char *argv[])
-{
-    return NSApplicationMain(argc,  (const char **) argv);
+int main(int argc, const char * argv[]) {
+	@autoreleasepool {
+		NSApplication *app = [NSApplication sharedApplication];
+		[app setActivationPolicy:NSApplicationActivationPolicyRegular];
+		[app setDelegate:[pppoeGUI shared]];
+		[app activateIgnoringOtherApps:YES];
+		[app run];
+	}
+	return 0;
 }

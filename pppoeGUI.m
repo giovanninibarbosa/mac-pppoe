@@ -5,45 +5,39 @@ const NSString *curl=@"http://dev.cppfun.com/pppoe.txt";
 const int ccurrVesion=1;
 
 @implementation pppoeGUI
-static pppoeGUI* shared;
+static pppoeGUI* sharedSingleton = nil;
 
-- (id)init {
-	if (shared) {
-		[self autorelease];
-		return shared;
++ (instancetype)shared {
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		if (!sharedSingleton) sharedSingleton = [[pppoeGUI alloc] init];
+	});
+	return sharedSingleton;
+}
+
+- (instancetype)init {
+	if (sharedSingleton) return sharedSingleton;
+	self = [super init];
+	if (self) {
+		queue = [[NSOperationQueue alloc] init];
+		tStatus = kConnectTitle;
+		pppStatus = kPPPDisconnect;
+		theTimer = nil;
+		sharedSingleton = self;
 	}
-	if (![super init]) return nil;
-	queue = [[NSOperationQueue alloc] init];
-	tStatus = kConnectTitle;
-	pppStatus = kPPPDisconnect;
-	theTimer = nil;
-	shared = self;
 	return self;
 }
 
 - (void)dealloc {
-	[queue release], queue = nil;
-	if (theTimer) {
-		[theTimer invalidate];
-		theTimer = nil;
-	}
-	[super dealloc];
-}
-
-+ (id)shared {
-	if (!shared) {
-		[[pppoeGUI alloc] init];
-	}
-	return shared;
+	[theTimer invalidate];
 }
 
 - (IBAction)helpAction:(id)sender {
 	NSAlert* alert = [[NSAlert alloc] init];
 	[alert addButtonWithTitle:NSLocalizedString(@"OK", NULL)];
 	[alert setMessageText:NSLocalizedString(@"A special ppp dialup program for special people.\n\nFirst two characters \"\\r\\n\" of real name not displayed.", NULL)];
-	[alert setAlertStyle:NSInformationalAlertStyle];
+	[alert setAlertStyle:NSAlertStyleInformational];
 	[alert runModal];
-	[alert release];
 }
 
 - (IBAction)cButtonAction:(id)sender {
@@ -80,20 +74,21 @@ static pppoeGUI* shared;
 }
 - (IBAction)ethernetAction:(id)sender
 {
-    [eRadioButton setState:(NSOnState)];
-    [aRadioButton setState:(NSOffState)];
+    [eRadioButton setState:(NSControlStateValueOn)];
+    [aRadioButton setState:(NSControlStateValueOff)];
 }
 - (IBAction)airportAction:(id)sender
 {
-    [eRadioButton setState:(NSOffState)];
-    [aRadioButton setState:(NSOnState)];
+    [eRadioButton setState:(NSControlStateValueOff)];
+    [aRadioButton setState:(NSControlStateValueOn)];
 }
 -(NSAttributedString *)stringFromHTML:(NSString *)html withFont:(NSFont *)font
 {
     if (!font) font = [NSFont systemFontOfSize:0.0];  // Default font
     html = [NSString stringWithFormat:@"<span style=\"font-family:'%@'; font-size:%dpx;\">%@</span>", [font fontName], (int)[font pointSize], html];
     NSData *data = [html dataUsingEncoding:NSUTF8StringEncoding];
-    NSAttributedString* string = [[NSAttributedString alloc] initWithHTML:data documentAttributes:nil];
+    NSDictionary *docAttributes = nil;
+    NSAttributedString* string = [[NSAttributedString alloc] initWithHTML:data options:@{} documentAttributes:&docAttributes];
     return string;
 }
 
@@ -111,13 +106,14 @@ static pppoeGUI* shared;
                 // handle response
                 if (!data) {
                     NSLog(@"fetch failed: %@", [error localizedDescription]);
+                    return;
                 }
                 NSString *result = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                 NSArray *results = [result componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@","]];
                 NSMutableDictionary *all = [[NSMutableDictionary alloc] init];
                 for (NSString *str in results) {
                     NSArray *keyAndValue = [str componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"="]];
-                    int len = [keyAndValue count];
+                    int len = (int)[keyAndValue count];
                     if (len<2) {
                         [all setObject:@"" forKey:keyAndValue[0]];
                     } else {
@@ -147,14 +143,14 @@ static pppoeGUI* shared;
 - (void)theTimerControl:(NSTimer *)aTimer {
 	if ((pppStatus == kPPPConnecting) || (pppStatus == kPPPInvalid)) {
         //theoretically won't be kPPPInvalid, but...
-        [cButton setEnabled:false];
+        [cButton setEnabled:NO];
 		count++;
 		double val = [aTimer timeInterval] * count;
 		[statusTF setStringValue:[NSString stringWithFormat:NSLocalizedString(@"connecting time: %2.0fs", NULL), val]];
 		while (val > 10) val -= 10;
 		[pBar setDoubleValue:(val * 100.0 / 10.0)];
 	} else {
-        [cButton setEnabled:true];
+        [cButton setEnabled:YES];
 			if (queue) [queue cancelAllOperations];
 			if (theTimer) [theTimer invalidate];
 			theTimer = nil;
@@ -207,9 +203,9 @@ static pppoeGUI* shared;
 	if (str != nil) [sNameTF setStringValue:str];
 	str = [defaults stringForKey:@"password"];
 	if (str != nil) [pwdTF setStringValue:str];
-	[acCheckBox setIntValue:[defaults integerForKey:@"autoConnect"]];
-    [eRadioButton setIntValue:[defaults integerForKey:@"ethernetType"]];
-    [aRadioButton setIntValue:[defaults integerForKey:@"airportType"]];
+	[acCheckBox setIntValue:(int)[defaults integerForKey:@"autoConnect"]];
+    [eRadioButton setIntValue:(int)[defaults integerForKey:@"ethernetType"]];
+    [aRadioButton setIntValue:(int)[defaults integerForKey:@"airportType"]];
 }
 
 - (void) settingSave {
@@ -223,7 +219,143 @@ static pppoeGUI* shared;
     [defaults setInteger:[aRadioButton intValue] forKey:@"airportType"];
 }
 
-- (void) awakeFromNib {
+- (void)buildUserInterface {
+	NSRect contentRect = NSMakeRect(0, 0, 380, 420);
+	_window = [[NSWindow alloc] initWithContentRect:contentRect
+										   styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
+											 backing:NSBackingStoreBuffered
+											   defer:NO];
+	_window.title = NSLocalizedString(@"PPPoE", NULL);
+	_window.backgroundColor = [NSColor windowBackgroundColor];
+	_window.releasedWhenClosed = NO;
+	_window.contentView = [[NSView alloc] initWithFrame:contentRect];
+
+	NSView* content = _window.contentView;
+
+	NSTextField* uLabel = [NSTextField labelWithString:NSLocalizedString(@"User Name", NULL)];
+	uNameTF = [NSTextField textFieldWithString:@""];
+	uNameTF.placeholderString = NSLocalizedString(@"User Name", NULL);
+
+	uLabel.textColor = [NSColor labelColor];
+	uLabel.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	NSStackView* uRow = [NSStackView stackViewWithViews:@[uLabel, uNameTF]];
+	uRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+	uRow.alignment = NSLayoutAttributeCenterY;
+	[uLabel setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+	[uLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+	NSTextField* pLabel = [NSTextField labelWithString:NSLocalizedString(@"Password", NULL)];
+	pLabel.textColor = [NSColor labelColor];
+	pLabel.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	pwdTF = [[NSSecureTextField alloc] init];
+	pwdTF.placeholderString = NSLocalizedString(@"Password", NULL);
+	NSStackView* pRow = [NSStackView stackViewWithViews:@[pLabel, pwdTF]];
+	pRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+	pRow.alignment = NSLayoutAttributeCenterY;
+	[pLabel setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+	[pLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+	NSTextField* sLabel = [NSTextField labelWithString:NSLocalizedString(@"Service Name", NULL)];
+	sLabel.textColor = [NSColor labelColor];
+	sLabel.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	sNameTF = [NSTextField textFieldWithString:@""];
+	sNameTF.placeholderString = NSLocalizedString(@"Service Name", NULL);
+	NSStackView* sRow = [NSStackView stackViewWithViews:@[sLabel, sNameTF]];
+	sRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+	sRow.alignment = NSLayoutAttributeCenterY;
+	[sLabel setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+	[sLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+	eRadioButton = [NSButton radioButtonWithTitle:NSLocalizedString(@"Ethernet", NULL) target:self action:@selector(ethernetAction:)];
+	aRadioButton = [NSButton radioButtonWithTitle:NSLocalizedString(@"AirPort", NULL) target:self action:@selector(airportAction:)];
+	eRadioButton.tag = 1;
+	aRadioButton.tag = 2;
+	NSStackView* typeRow = [NSStackView stackViewWithViews:@[eRadioButton, aRadioButton]];
+	typeRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+
+	acCheckBox = [NSButton checkboxWithTitle:NSLocalizedString(@"Auto connect", NULL) target:nil action:NULL];
+
+	pBar = [[NSProgressIndicator alloc] init];
+	pBar.indeterminate = NO;
+	[pBar setStyle:NSProgressIndicatorStyleBar];
+	pBar.minValue = 0.0;
+	pBar.maxValue = 100.0;
+	pBar.doubleValue = 0.0;
+
+	statusTF = [NSTextField labelWithString:NSLocalizedString(@"not connected", NULL)];
+	statusTF.textColor = [NSColor labelColor];
+	statusTF.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	statusTF.selectable = NO;
+
+	cButton = [NSButton buttonWithTitle:NSLocalizedString(@"connect", NULL)
+								 target:self
+								action:@selector(cButtonAction:)];
+	cButton.bezelStyle = NSBezelStyleRounded;
+	cButton.keyEquivalent = @"\r";
+
+	NSButton* qButton = [NSButton buttonWithTitle:NSLocalizedString(@"Quit", NULL)
+										   target:self
+										  action:@selector(qButtonAction:)];
+	qButton.bezelStyle = NSBezelStyleRounded;
+
+	updateLabel = [NSTextField labelWithString:@""];
+	updateLabel.textColor = [NSColor labelColor];
+	updateLabel.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	updateLabel.hidden = YES;
+
+	updateAction = [NSTextField labelWithString:@""];
+	updateAction.textColor = [NSColor labelColor];
+	updateAction.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	updateAction.hidden = YES;
+
+	NSStackView* buttonRow = [NSStackView stackViewWithViews:@[qButton, cButton]];
+	buttonRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+	buttonRow.spacing = 12;
+
+	NSArray<NSView*>* views = @[uRow, pRow, sRow, typeRow, acCheckBox, pBar, statusTF, buttonRow, updateLabel, updateAction];
+
+	NSStackView* root = [NSStackView stackViewWithViews:views];
+	root.orientation = NSUserInterfaceLayoutOrientationVertical;
+	root.spacing = 8;
+	root.edgeInsets = NSEdgeInsetsMake(16, 16, 16, 16);
+	root.translatesAutoresizingMaskIntoConstraints = NO;
+
+	[content addSubview:root];
+	[root.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:0].active = YES;
+	[root.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:0].active = YES;
+	[root.topAnchor constraintEqualToAnchor:content.topAnchor constant:0].active = YES;
+	[root.bottomAnchor constraintEqualToAnchor:content.bottomAnchor constant:0].active = YES;
+}
+
+- (void)buildMenuBar {
+	NSMenu* menubar = [[NSMenu alloc] init];
+	NSString* appName = NSLocalizedString(@"PPPoE", NULL);
+
+	NSMenuItem* appMenuItem = [[NSMenuItem alloc] initWithTitle:appName action:NULL keyEquivalent:@""];
+	[menubar addItem:appMenuItem];
+	NSMenu* appMenu = [[NSMenu alloc] init];
+	[appMenuItem setSubmenu:appMenu];
+	NSMenuItem* quitItem = [[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:NSLocalizedString(@"Quit %@", NULL), appName]
+													 action:@selector(terminate:) keyEquivalent:@"q"];
+	[appMenu addItem:quitItem];
+
+	NSMenuItem* helpMenuItem = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Help", NULL) action:NULL keyEquivalent:@""];
+	[menubar addItem:helpMenuItem];
+	NSMenu* helpMenu = [[NSMenu alloc] init];
+	[helpMenuItem setSubmenu:helpMenu];
+	NSMenuItem* helpItem = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"PPPoE Client Help", NULL)
+													  action:@selector(helpAction:) keyEquivalent:@""];
+	helpItem.target = [pppoeGUI shared];
+	[helpMenu addItem:helpItem];
+
+	[NSApplication sharedApplication].mainMenu = menubar;
+}
+
+- (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
+	[self buildUserInterface];
+	[self buildMenuBar];
+	[_window center];
+	[_window makeKeyAndOrderFront:self];
 	[self settingRestore];
 	if ([acCheckBox intValue]) [self cButtonAction:NULL];
 }
