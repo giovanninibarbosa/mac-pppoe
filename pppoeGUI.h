@@ -61,7 +61,7 @@ typedef struct _Parameters {
 - (void)addOperation:(PPPCMD)cmd;
 - (void)settingRestore;
 - (void)settingSave;
-+ (id)shared;
++ (instancetype)shared;
 - (void)setPPPStatus:(NSNumber*)num;
 -(NSAttributedString *)stringFromHTML:(NSString *)html withFont:(NSFont *)font;
 - (void)checkUpdate:(const NSString *)url version:(int)currVesion;

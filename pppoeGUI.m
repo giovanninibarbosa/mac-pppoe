@@ -5,45 +5,39 @@ const NSString *curl=@"http://dev.cppfun.com/pppoe.txt";
 const int ccurrVesion=1;
 
 @implementation pppoeGUI
-static pppoeGUI* shared;
+static pppoeGUI* sharedSingleton = nil;
 
-- (id)init {
-	if (shared) {
-		[self autorelease];
-		return shared;
++ (instancetype)shared {
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		if (!sharedSingleton) sharedSingleton = [[pppoeGUI alloc] init];
+	});
+	return sharedSingleton;
+}
+
+- (instancetype)init {
+	if (sharedSingleton) return sharedSingleton;
+	self = [super init];
+	if (self) {
+		queue = [[NSOperationQueue alloc] init];
+		tStatus = kConnectTitle;
+		pppStatus = kPPPDisconnect;
+		theTimer = nil;
+		sharedSingleton = self;
 	}
-	if (![super init]) return nil;
-	queue = [[NSOperationQueue alloc] init];
-	tStatus = kConnectTitle;
-	pppStatus = kPPPDisconnect;
-	theTimer = nil;
-	shared = self;
 	return self;
 }
 
 - (void)dealloc {
-	[queue release], queue = nil;
-	if (theTimer) {
-		[theTimer invalidate];
-		theTimer = nil;
-	}
-	[super dealloc];
-}
-
-+ (id)shared {
-	if (!shared) {
-		[[pppoeGUI alloc] init];
-	}
-	return shared;
+	[theTimer invalidate];
 }
 
 - (IBAction)helpAction:(id)sender {
 	NSAlert* alert = [[NSAlert alloc] init];
 	[alert addButtonWithTitle:NSLocalizedString(@"OK", NULL)];
 	[alert setMessageText:NSLocalizedString(@"A special ppp dialup program for special people.\n\nFirst two characters \"\\r\\n\" of real name not displayed.", NULL)];
-	[alert setAlertStyle:NSInformationalAlertStyle];
+	[alert setAlertStyle:NSAlertStyleInformational];
 	[alert runModal];
-	[alert release];
 }
 
 - (IBAction)cButtonAction:(id)sender {
@@ -80,20 +74,20 @@ static pppoeGUI* shared;
 }
 - (IBAction)ethernetAction:(id)sender
 {
-    [eRadioButton setState:(NSOnState)];
-    [aRadioButton setState:(NSOffState)];
+    [eRadioButton setState:(NSControlStateValueOn)];
+    [aRadioButton setState:(NSControlStateValueOff)];
 }
 - (IBAction)airportAction:(id)sender
 {
-    [eRadioButton setState:(NSOffState)];
-    [aRadioButton setState:(NSOnState)];
+    [eRadioButton setState:(NSControlStateValueOff)];
+    [aRadioButton setState:(NSControlStateValueOn)];
 }
 -(NSAttributedString *)stringFromHTML:(NSString *)html withFont:(NSFont *)font
 {
     if (!font) font = [NSFont systemFontOfSize:0.0];  // Default font
     html = [NSString stringWithFormat:@"<span style=\"font-family:'%@'; font-size:%dpx;\">%@</span>", [font fontName], (int)[font pointSize], html];
     NSData *data = [html dataUsingEncoding:NSUTF8StringEncoding];
-    NSAttributedString* string = [[NSAttributedString alloc] initWithHTML:data documentAttributes:nil];
+    NSAttributedString* string = [[NSAttributedString alloc] initWithHTML:data options:nil documentAttributes:nil];
     return string;
 }
 
@@ -111,6 +105,7 @@ static pppoeGUI* shared;
                 // handle response
                 if (!data) {
                     NSLog(@"fetch failed: %@", [error localizedDescription]);
+                    return;
                 }
                 NSString *result = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                 NSArray *results = [result componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@","]];
@@ -147,14 +142,14 @@ static pppoeGUI* shared;
 - (void)theTimerControl:(NSTimer *)aTimer {
 	if ((pppStatus == kPPPConnecting) || (pppStatus == kPPPInvalid)) {
         //theoretically won't be kPPPInvalid, but...
-        [cButton setEnabled:false];
+        [cButton setEnabled:NO];
 		count++;
 		double val = [aTimer timeInterval] * count;
 		[statusTF setStringValue:[NSString stringWithFormat:NSLocalizedString(@"connecting time: %2.0fs", NULL), val]];
 		while (val > 10) val -= 10;
 		[pBar setDoubleValue:(val * 100.0 / 10.0)];
 	} else {
-        [cButton setEnabled:true];
+        [cButton setEnabled:YES];
 			if (queue) [queue cancelAllOperations];
 			if (theTimer) [theTimer invalidate];
 			theTimer = nil;
