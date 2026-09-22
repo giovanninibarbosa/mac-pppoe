@@ -27,22 +27,20 @@ typedef struct _Parameters {
 	PPPCMD cmd;
 } DialParas;
 
-@interface pppoeGUI:NSObject {
-    IBOutlet NSButton* acCheckBox;
-    IBOutlet NSButton* cButton;
-    IBOutlet NSProgressIndicator* pBar;
-    IBOutlet NSTextField* pwdTF;
-    IBOutlet NSTextField* sNameTF;
-    IBOutlet NSTextField* statusTF;
-    IBOutlet NSTextField* uNameTF;
-    // add for airport begin
-    IBOutlet NSButton* eRadioButton;
-    IBOutlet NSButton* aRadioButton;
-    // add for airport endl
-    // add for update begin
-    IBOutlet NSTextField* updateAction;
-    IBOutlet NSTextField* updateLabel;
-    // add for update endl
+@interface pppoeGUI:NSObject <NSApplicationDelegate> {
+@private
+	NSWindow* _window;
+	NSButton* acCheckBox;
+	NSButton* cButton;
+	NSProgressIndicator* pBar;
+	NSTextField* pwdTF;
+	NSTextField* sNameTF;
+	NSTextField* statusTF;
+	NSTextField* uNameTF;
+	NSButton* eRadioButton;
+	NSButton* aRadioButton;
+	NSTextField* updateAction;
+	NSTextField* updateLabel;
 	
 	NSOperationQueue* queue;
 	TitleStatus tStatus;
@@ -51,10 +49,8 @@ typedef struct _Parameters {
 	int count;
 }
 - (IBAction)cButtonAction:(id)sender;
-// add for airport begin
 - (IBAction)ethernetAction:(id)sender;
 - (IBAction)airportAction:(id)sender;
-// add for airport endl
 - (void)theTimerControl:(NSTimer*)aTimer;
 - (IBAction)qButtonAction:(id)sender;
 - (IBAction)helpAction:(id)sender;
@@ -65,4 +61,6 @@ typedef struct _Parameters {
 - (void)setPPPStatus:(NSNumber*)num;
 -(NSAttributedString *)stringFromHTML:(NSString *)html withFont:(NSFont *)font;
 - (void)checkUpdate:(const NSString *)url version:(int)currVesion;
+- (void)buildUserInterface;
+- (void)buildMenuBar;
 @end

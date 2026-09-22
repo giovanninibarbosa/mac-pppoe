@@ -35,8 +35,6 @@
 	<string>1.0</string>
 	<key>LSHasLocalizedDisplayName</key>
 	<true/>
-	<key>NSMainNibFile</key>
-	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

@@ -1,4 +1,7 @@
 /* No comment provided by engineer. */
+"PPPoE" = "PPPoE";
+
+/* No comment provided by engineer. */
 "cancel" = "取消";
 
 /* No comment provided by engineer. */
@@ -33,4 +36,35 @@
 
 /* No comment provided by engineer. */
 "ppp service not available" = "没有找到可用的PPP服务";
+
 "updateLabel" = "发现一个新版本.";
+
+/* No comment provided by engineer. */
+"User Name" = "用户名";
+
+/* No comment provided by engineer. */
+"Password" = "密码";
+
+/* No comment provided by engineer. */
+"Service Name" = "服务名";
+
+/* No comment provided by engineer. */
+"Ethernet" = "以太网";
+
+/* No comment provided by engineer. */
+"AirPort" = "无线网络";
+
+/* No comment provided by engineer. */
+"Auto connect" = "自动连接";
+
+/* No comment provided by engineer. */
+"Quit" = "退出";
+
+/* No comment provided by engineer. */
+"Help" = "帮助";
+
+/* No comment provided by engineer. */
+"PPPoE Client Help" = "PPPoE 客户端帮助";
+
+/* No comment provided by engineer. */
+"Quit %@" = "退出 %@";

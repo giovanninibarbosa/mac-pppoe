@@ -219,7 +219,143 @@ static pppoeGUI* sharedSingleton = nil;
     [defaults setInteger:[aRadioButton intValue] forKey:@"airportType"];
 }
 
-- (void) awakeFromNib {
+- (void)buildUserInterface {
+	NSRect contentRect = NSMakeRect(0, 0, 380, 420);
+	_window = [[NSWindow alloc] initWithContentRect:contentRect
+										   styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
+											 backing:NSBackingStoreBuffered
+											   defer:NO];
+	_window.title = NSLocalizedString(@"PPPoE", NULL);
+	_window.backgroundColor = [NSColor windowBackgroundColor];
+	_window.releasedWhenClosed = NO;
+	_window.contentView = [[NSView alloc] initWithFrame:contentRect];
+
+	NSView* content = _window.contentView;
+
+	NSTextField* uLabel = [NSTextField labelWithString:NSLocalizedString(@"User Name", NULL)];
+	uNameTF = [NSTextField textFieldWithString:@""];
+	uNameTF.placeholderString = NSLocalizedString(@"User Name", NULL);
+
+	uLabel.textColor = [NSColor labelColor];
+	uLabel.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	NSStackView* uRow = [NSStackView stackViewWithViews:@[uLabel, uNameTF]];
+	uRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+	uRow.alignment = NSLayoutAttributeCenterY;
+	[uLabel setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+	[uLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+	NSTextField* pLabel = [NSTextField labelWithString:NSLocalizedString(@"Password", NULL)];
+	pLabel.textColor = [NSColor labelColor];
+	pLabel.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	pwdTF = [[NSSecureTextField alloc] init];
+	pwdTF.placeholderString = NSLocalizedString(@"Password", NULL);
+	NSStackView* pRow = [NSStackView stackViewWithViews:@[pLabel, pwdTF]];
+	pRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+	pRow.alignment = NSLayoutAttributeCenterY;
+	[pLabel setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+	[pLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+	NSTextField* sLabel = [NSTextField labelWithString:NSLocalizedString(@"Service Name", NULL)];
+	sLabel.textColor = [NSColor labelColor];
+	sLabel.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	sNameTF = [NSTextField textFieldWithString:@""];
+	sNameTF.placeholderString = NSLocalizedString(@"Service Name", NULL);
+	NSStackView* sRow = [NSStackView stackViewWithViews:@[sLabel, sNameTF]];
+	sRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+	sRow.alignment = NSLayoutAttributeCenterY;
+	[sLabel setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+	[sLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+	eRadioButton = [NSButton radioButtonWithTitle:NSLocalizedString(@"Ethernet", NULL) target:self action:@selector(ethernetAction:)];
+	aRadioButton = [NSButton radioButtonWithTitle:NSLocalizedString(@"AirPort", NULL) target:self action:@selector(airportAction:)];
+	eRadioButton.tag = 1;
+	aRadioButton.tag = 2;
+	NSStackView* typeRow = [NSStackView stackViewWithViews:@[eRadioButton, aRadioButton]];
+	typeRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+
+	acCheckBox = [NSButton checkboxWithTitle:NSLocalizedString(@"Auto connect", NULL) target:nil action:NULL];
+
+	pBar = [[NSProgressIndicator alloc] init];
+	pBar.indeterminate = NO;
+	[pBar setStyle:NSProgressIndicatorStyleBar];
+	pBar.minValue = 0.0;
+	pBar.maxValue = 100.0;
+	pBar.doubleValue = 0.0;
+
+	statusTF = [NSTextField labelWithString:NSLocalizedString(@"not connected", NULL)];
+	statusTF.textColor = [NSColor labelColor];
+	statusTF.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	statusTF.selectable = NO;
+
+	cButton = [NSButton buttonWithTitle:NSLocalizedString(@"connect", NULL)
+								 target:self
+								action:@selector(cButtonAction:)];
+	cButton.bezelStyle = NSBezelStyleRounded;
+	cButton.keyEquivalent = @"\r";
+
+	NSButton* qButton = [NSButton buttonWithTitle:NSLocalizedString(@"Quit", NULL)
+										   target:self
+										  action:@selector(qButtonAction:)];
+	qButton.bezelStyle = NSBezelStyleRounded;
+
+	updateLabel = [NSTextField labelWithString:@""];
+	updateLabel.textColor = [NSColor labelColor];
+	updateLabel.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	updateLabel.hidden = YES;
+
+	updateAction = [NSTextField labelWithString:@""];
+	updateAction.textColor = [NSColor labelColor];
+	updateAction.font = [NSFont systemFontOfSize:[NSFont labelFontSize]];
+	updateAction.hidden = YES;
+
+	NSStackView* buttonRow = [NSStackView stackViewWithViews:@[qButton, cButton]];
+	buttonRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+	buttonRow.spacing = 12;
+
+	NSArray<NSView*>* views = @[uRow, pRow, sRow, typeRow, acCheckBox, pBar, statusTF, buttonRow, updateLabel, updateAction];
+
+	NSStackView* root = [NSStackView stackViewWithViews:views];
+	root.orientation = NSUserInterfaceLayoutOrientationVertical;
+	root.spacing = 8;
+	root.edgeInsets = NSEdgeInsetsMake(16, 16, 16, 16);
+	root.translatesAutoresizingMaskIntoConstraints = NO;
+
+	[content addSubview:root];
+	[root.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:0].active = YES;
+	[root.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:0].active = YES;
+	[root.topAnchor constraintEqualToAnchor:content.topAnchor constant:0].active = YES;
+	[root.bottomAnchor constraintEqualToAnchor:content.bottomAnchor constant:0].active = YES;
+}
+
+- (void)buildMenuBar {
+	NSMenu* menubar = [[NSMenu alloc] init];
+	NSString* appName = NSLocalizedString(@"PPPoE", NULL);
+
+	NSMenuItem* appMenuItem = [[NSMenuItem alloc] initWithTitle:appName action:NULL keyEquivalent:@""];
+	[menubar addItem:appMenuItem];
+	NSMenu* appMenu = [[NSMenu alloc] init];
+	[appMenuItem setSubmenu:appMenu];
+	NSMenuItem* quitItem = [[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:NSLocalizedString(@"Quit %@", NULL), appName]
+													 action:@selector(terminate:) keyEquivalent:@"q"];
+	[appMenu addItem:quitItem];
+
+	NSMenuItem* helpMenuItem = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Help", NULL) action:NULL keyEquivalent:@""];
+	[menubar addItem:helpMenuItem];
+	NSMenu* helpMenu = [[NSMenu alloc] init];
+	[helpMenuItem setSubmenu:helpMenu];
+	NSMenuItem* helpItem = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"PPPoE Client Help", NULL)
+													  action:@selector(helpAction:) keyEquivalent:@""];
+	helpItem.target = [pppoeGUI shared];
+	[helpMenu addItem:helpItem];
+
+	[NSApplication sharedApplication].mainMenu = menubar;
+}
+
+- (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
+	[self buildUserInterface];
+	[self buildMenuBar];
+	[_window center];
+	[_window makeKeyAndOrderFront:self];
 	[self settingRestore];
 	if ([acCheckBox intValue]) [self cButtonAction:NULL];
 }
